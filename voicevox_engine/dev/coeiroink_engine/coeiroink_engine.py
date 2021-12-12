@@ -1,8 +1,5 @@
-import os
-import zipfile
 from typing import List, NamedTuple
 
-import gdown
 import numpy as np
 import pyopenjtalk
 import resampy
@@ -76,17 +73,10 @@ class EspnetModel:
     def get_tsukuyomichan_model(cls, use_gpu):
         download_path = './models'
         model_path = f"{download_path}/TSUKUYOMICHAN_COEIROINK_MODEL_v.2.0.0"
-        model_url = 'https://drive.google.com/uc?id=1jPuUoWoGc231ilNzA647tN4EQthl-BU7'
         acoustic_model_path = f"{model_path}/ACOUSTIC_MODEL/100epoch.pth"
         acoustic_model_config_path = f"{model_path}/ACOUSTIC_MODEL/config.yaml"
-        acoustic_model_stats_path = f"{model_path}/ACOUSTIC_MODEL/feats_stats.npz"
         vocoder_model_path = f"{model_path}/VOCODER/checkpoint-2500000steps.pkl"
         vocoder_stats_path = f"{model_path}/VOCODER/stats.h5"
-        if not os.path.exists(download_path):
-            os.makedirs(download_path)
-        if not os.path.exists(model_path):
-            cls.download_model(download_path, model_path, model_url)
-            cls.update_acoustic_model_config(acoustic_model_config_path, acoustic_model_stats_path)
 
         settings = EspnetSettings(
             acoustic_model_config_path=acoustic_model_config_path,
@@ -95,24 +85,6 @@ class EspnetModel:
             vocoder_stats_path=vocoder_stats_path
         )
         return cls(settings, use_gpu=use_gpu, use_scaler=True)
-
-    @staticmethod
-    def download_model(download_path, model_path, model_url):
-        zip_path = f"{model_path}.zip"
-        gdown.download(model_url, zip_path, quiet=False)
-        with zipfile.ZipFile(zip_path) as model_zip:
-            model_zip.extractall(download_path)
-        os.remove(zip_path)
-
-    @staticmethod
-    def update_acoustic_model_config(acoustic_model_config_path, acoustic_model_stats_path):
-        with open(acoustic_model_config_path) as f:
-            yml = yaml.safe_load(f)
-        if not yml['normalize_conf']['stats_file'] == acoustic_model_stats_path:
-            yml['normalize_conf']['stats_file'] = acoustic_model_stats_path
-            with open(acoustic_model_config_path, 'w') as f:
-                yaml.safe_dump(yml, f)
-            print("Update acoustic model yaml.")
 
 
 class SynthesisEngine:

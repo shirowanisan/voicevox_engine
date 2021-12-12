@@ -1,14 +1,12 @@
 appdirs==1.4.4
 audioread==2.1.9
-beautifulsoup4==4.10.0
 certifi==2021.10.8
 cffi==1.15.0
-charset-normalizer==2.0.7
+charset-normalizer==2.0.9
 colorama==0.4.4
 Cython==0.29.24
 decorator==5.1.0
-filelock==3.3.2
-gdown==4.2.0
+filelock==3.4.0
 h5py==3.5.0
 humanfriendly==10.0
 idna==3.3
@@ -23,7 +21,6 @@ pooch==1.5.2
 pycparser==2.20
 pyparsing==2.4.7
 pyreadline3==3.3
-PySocks==1.7.1
 PyYAML==6.0
 requests==2.26.0
 resampy==0.2.2
@@ -32,11 +29,9 @@ scipy==1.7.1
 sentencepiece==0.1.96
 six==1.16.0
 SoundFile==0.10.3.post1
-soupsieve==2.3.1
 threadpoolctl==3.0.0
 torch==1.10.0
 torch-complex==0.2.1
-tqdm==4.62.3
 typeguard==2.13.0
 typing-extensions==3.10.0.2
 urllib3==1.26.7
