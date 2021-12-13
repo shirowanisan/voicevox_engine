@@ -27,11 +27,11 @@ class EspnetModel:
         # init run for pyopenjtalk
         pyopenjtalk.g2p('a')
 
-        device = 'cuda' if use_gpu else 'cpu'
+        self.device = 'cuda' if use_gpu else 'cpu'
         self.acoustic_model = Text2Speech(
             settings.acoustic_model_config_path,
             settings.acoustic_model_path,
-            device=device,
+            device=self.device,
             threshold=0.5,
             minlenratio=0.0,
             maxlenratio=10.0,
@@ -40,7 +40,7 @@ class EspnetModel:
             forward_window=3
         )
         self.acoustic_model.spc2wav = None
-        self.vocoder = load_model(settings.vocoder_model_path).to(device).eval()
+        self.vocoder = load_model(settings.vocoder_model_path).to(self.device).eval()
 
         self.use_scaler = use_scaler
         self.scaler = StandardScaler()
@@ -62,7 +62,11 @@ class EspnetModel:
         with torch.no_grad():
             output = self.acoustic_model(text_ints)
             if self.use_scaler:
-                mel = self.scaler.transform(output['feat_gen_denorm'])
+                if self.device == 'cuda':
+                    mel = self.scaler.transform(output['feat_gen_denorm'].cpu())
+                    mel = torch.tensor(mel, dtype=torch.float32, device='cuda')
+                else:
+                    mel = self.scaler.transform(output['feat_gen_denorm'])
                 wave = self.vocoder.inference(mel)
             else:
                 wave = self.vocoder.inference(output['feat_gen'])
@@ -92,7 +96,7 @@ class SynthesisEngine:
         self.speakers = kwargs["speakers"]
 
         self.default_sampling_rate = 24000
-        self.use_gpu = False
+        self.use_gpu = True
 
         self.speaker_models: List[EspnetModel] = []
         self.speaker_models.append(EspnetModel.get_tsukuyomichan_model(use_gpu=self.use_gpu))

@@ -168,6 +168,7 @@ python -m nuitka \
 pip install --no-deps -r requirements-coeiroink-no-deps.txt
 pip install -r requirements-coeiroink.txt
 pip install -r requirements-dev.txt
+pip3 install torch==1.10.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
 python generate_licenses.py > licenses.json
 
