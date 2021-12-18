@@ -1,5 +1,6 @@
 from typing import List, NamedTuple
 
+import librosa
 import numpy as np
 import pyopenjtalk
 import resampy
@@ -27,11 +28,11 @@ class EspnetModel:
         # init run for pyopenjtalk
         pyopenjtalk.g2p('a')
 
-        device = 'cuda' if use_gpu else 'cpu'
+        self.device = 'cuda' if use_gpu else 'cpu'
         self.acoustic_model = Text2Speech(
             settings.acoustic_model_config_path,
             settings.acoustic_model_path,
-            device=device,
+            device=self.device,
             threshold=0.5,
             minlenratio=0.0,
             maxlenratio=10.0,
@@ -40,7 +41,7 @@ class EspnetModel:
             forward_window=3
         )
         self.acoustic_model.spc2wav = None
-        self.vocoder = load_model(settings.vocoder_model_path).to(device).eval()
+        self.vocoder = load_model(settings.vocoder_model_path).to(self.device).eval()
 
         self.use_scaler = use_scaler
         self.scaler = StandardScaler()
@@ -62,7 +63,11 @@ class EspnetModel:
         with torch.no_grad():
             output = self.acoustic_model(text_ints)
             if self.use_scaler:
-                mel = self.scaler.transform(output['feat_gen_denorm'])
+                if self.device == 'cuda':
+                    mel = self.scaler.transform(output['feat_gen_denorm'].cpu())
+                    mel = torch.tensor(mel, dtype=torch.float32, device='cuda')
+                else:
+                    mel = self.scaler.transform(output['feat_gen_denorm'])
                 wave = self.vocoder.inference(mel)
             else:
                 wave = self.vocoder.inference(output['feat_gen'])
@@ -70,13 +75,10 @@ class EspnetModel:
         return wave
 
     @classmethod
-    def get_tsukuyomichan_model(cls, use_gpu):
-        download_path = './models'
-        model_path = f"{download_path}/TSUKUYOMICHAN_COEIROINK_MODEL_v.2.0.0"
-        acoustic_model_path = f"{model_path}/ACOUSTIC_MODEL/100epoch.pth"
-        acoustic_model_config_path = f"{model_path}/ACOUSTIC_MODEL/config.yaml"
-        vocoder_model_path = f"{model_path}/VOCODER/checkpoint-2500000steps.pkl"
-        vocoder_stats_path = f"{model_path}/VOCODER/stats.h5"
+    def get_espnet_model(cls, acoustic_model_path, acoustic_model_config_path, use_gpu, use_scaler):
+        vocoder_model_folder_path = "./models/VOCODER"
+        vocoder_model_path = f"{vocoder_model_folder_path}/checkpoint-2500000steps.pkl"
+        vocoder_stats_path = f"{vocoder_model_folder_path}/stats.h5"
 
         settings = EspnetSettings(
             acoustic_model_config_path=acoustic_model_config_path,
@@ -84,7 +86,27 @@ class EspnetModel:
             vocoder_model_path=vocoder_model_path,
             vocoder_stats_path=vocoder_stats_path
         )
-        return cls(settings, use_gpu=use_gpu, use_scaler=True)
+        return cls(settings, use_gpu=use_gpu, use_scaler=use_scaler)
+
+    @classmethod
+    def get_tsukuyomichan_model(cls, use_gpu):
+        acoustic_model_folder_path = "./models/TSUKUYOMICHAN_COEIROINK_MODEL_v.2.0.0/ACOUSTIC_MODEL"
+        return cls.get_espnet_model(
+            acoustic_model_path=f"{acoustic_model_folder_path}/100epoch.pth",
+            acoustic_model_config_path=f"{acoustic_model_folder_path}/config.yaml",
+            use_gpu=use_gpu,
+            use_scaler=True
+        )
+
+    @classmethod
+    def get_harumachi_model(cls, use_gpu):
+        acoustic_model_folder_path = "./models/HARUMACHI_COEIROINK_MODEL_v.2.0.0/ACOUSTIC_MODEL"
+        return cls.get_espnet_model(
+            acoustic_model_path=f"{acoustic_model_folder_path}/100epoch.pth",
+            acoustic_model_config_path=f"{acoustic_model_folder_path}/config.yaml",
+            use_gpu=use_gpu,
+            use_scaler=True
+        )
 
 
 class SynthesisEngine:
@@ -96,6 +118,7 @@ class SynthesisEngine:
 
         self.speaker_models: List[EspnetModel] = []
         self.speaker_models.append(EspnetModel.get_tsukuyomichan_model(use_gpu=self.use_gpu))
+        self.speaker_models.append(EspnetModel.get_harumachi_model(use_gpu=self.use_gpu))
 
     @staticmethod
     def replace_phoneme_length(accent_phrases: List[AccentPhrase], speaker_id: int) -> List[AccentPhrase]:
@@ -111,12 +134,13 @@ class SynthesisEngine:
         wave = self.speaker_models[speaker_id].make_voice(tokens)
 
         # trim
-        wave = self.trim_wav_start_and_end_sil(wave)
+        wave, _ = librosa.effects.trim(wave)
 
         # volume
         if query.volumeScale != 1:
             wave *= query.volumeScale
 
+        # add sil
         if query.prePhonemeLength != 0 or query.postPhonemeLength != 0:
             pre_pause = np.zeros(int(self.default_sampling_rate * query.prePhonemeLength))
             post_pause = np.zeros(int(self.default_sampling_rate * query.postPhonemeLength))
@@ -132,23 +156,6 @@ class SynthesisEngine:
             )
 
         return wave
-
-    @staticmethod
-    def query2tokens_with_pause_and_accent(query: AudioQuery):
-        tokens = []
-        for accent_phrase in query.accent_phrases:
-            for i, mora in enumerate(accent_phrase.moras):
-                if mora.consonant:
-                    tokens.append(mora.consonant)
-                    tokens.append(str(accent_phrase.accent))
-                    tokens.append(str(i - (accent_phrase.accent - 1)))
-                tokens.append(mora.vowel)
-                tokens.append(str(accent_phrase.accent))
-                tokens.append(str(i - (accent_phrase.accent - 1)))
-            if accent_phrase.pause_mora:
-                tokens.append('pau')
-        tokens.append('<sos/eos>')
-        return tokens
 
     @staticmethod
     def query2tokens_prosody(query: AudioQuery, text=''):
@@ -184,21 +191,3 @@ class SynthesisEngine:
         else:
             tokens.append('$')
         return tokens
-
-    @staticmethod
-    def trim_wav_start_and_end_sil(wave, threshold=0.001):
-        start = 0
-        for i, w in enumerate(wave):
-            if abs(w) >= threshold:
-                start = i
-                break
-        wave = wave[start:]
-        end = 0
-        wave = np.flipud(wave)
-        for i, w in enumerate(wave):
-            if abs(w) >= 0.001:
-                end = i
-                break
-        wave = wave[end:]
-        wave = np.flipud(wave)
-        return wave
