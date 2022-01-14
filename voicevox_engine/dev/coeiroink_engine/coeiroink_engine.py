@@ -108,6 +108,16 @@ class EspnetModel:
             use_scaler=True
         )
 
+    @classmethod
+    def get_ofutonp_model(cls, use_gpu):
+        acoustic_model_folder_path = "./models/OFUTONP_COEIROINK_MODEL_v.2.0.0/ACOUSTIC_MODEL"
+        return cls.get_espnet_model(
+            acoustic_model_path=f"{acoustic_model_folder_path}/100epoch.pth",
+            acoustic_model_config_path=f"{acoustic_model_folder_path}/config.yaml",
+            use_gpu=use_gpu,
+            use_scaler=True
+        )
+
 
 class SynthesisEngine:
     def __init__(self, **kwargs):
@@ -119,6 +129,7 @@ class SynthesisEngine:
         self.speaker_models: List[EspnetModel] = []
         self.speaker_models.append(EspnetModel.get_tsukuyomichan_model(use_gpu=self.use_gpu))
         self.speaker_models.append(EspnetModel.get_harumachi_model(use_gpu=self.use_gpu))
+        self.speaker_models.append(EspnetModel.get_ofutonp_model(use_gpu=self.use_gpu))
 
     @staticmethod
     def replace_phoneme_length(accent_phrases: List[AccentPhrase], speaker_id: int) -> List[AccentPhrase]:
