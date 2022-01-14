@@ -124,7 +124,7 @@ class SynthesisEngine:
         self.speakers = kwargs["speakers"]
 
         self.default_sampling_rate = 24000
-        self.use_gpu = False
+        self.use_gpu = True
 
         self.speaker_models: List[EspnetModel] = []
         self.speaker_models.append(EspnetModel.get_tsukuyomichan_model(use_gpu=self.use_gpu))
