@@ -90,7 +90,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
         self.speakers = kwargs["speakers"]
 
         self.default_sampling_rate = 44100
-        self.use_gpu = False
+        self.use_gpu = True
 
         self.previous_speaker_id = 0
         self.previous_speed_scale = 1.0
