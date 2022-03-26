@@ -1,5 +1,7 @@
+import glob
 import json
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
@@ -67,50 +69,25 @@ def decode_forward(length: int, **kwargs: Dict[str, Any]) -> np.ndarray:
     return wave
 
 
+def get_metas_dict() -> List[dict]:
+    paths: List[str] = sorted(glob.glob(str(Path(__file__).parent.parent.parent.parent) + '/speaker_info/**/'))
+
+    speaker_infos = []
+    for path in paths:
+        with open(path + 'metas.json', encoding='utf-8') as f:
+            meta = json.load(f)
+        styles = [{'name': s['styleName'], 'id': s['styleId']} for s in meta['styles']]
+        speaker_info = {
+            'name': meta['speakerName'],
+            'speaker_uuid': meta['speakerUuid'],
+            'styles': styles,
+            'version': "3.0.0"
+        }
+        speaker_infos.append(speaker_info)
+
+    speaker_infos = sorted(speaker_infos, key=lambda x: x['styles'][0]['id'])
+    return speaker_infos
+
+
 def metas() -> str:
-    return json.dumps(
-        [
-            {
-                "name": "つくよみちゃん",
-                "styles": [
-                    {"name": "れいせい", "id": 0},
-                    {"name": "おしとやか", "id": 5},
-                    {"name": "げんき", "id": 6},
-                ],
-                "speaker_uuid": "3c37646f-3881-5374-2a83-149267990abc",
-                "version": "3.0.0",
-            },
-            {
-                "name": "MANA",
-                "styles": [
-                    {"name": "のーまる", "id": 1},
-                ],
-                "speaker_uuid": "292ea286-3d5f-f1cc-157c-66462a6a9d08",
-                "version": "3.0.0",
-            },
-            {
-                "name": "おふとんP",
-                "styles": [
-                    {"name": "のーまる", "id": 2},
-                ],
-                "speaker_uuid": "a60ebf6c-626a-7ce6-5d69-c92bf2a1a1d0",
-                "version": "3.0.0",
-            },
-            {
-                "name": "ディアちゃん",
-                "styles": [
-                    {"name": "のーまる", "id": 3},
-                ],
-                "speaker_uuid": "b28bb401-bc43-c9c7-77e4-77a2bbb4b283",
-                "version": "3.0.0",
-            },
-            {
-                "name": "アルマちゃん",
-                "styles": [
-                    {"name": "のーまる", "id": 4},
-                ],
-                "speaker_uuid": "c97966b1-d80c-04f5-aba5-d30a92843b59",
-                "version": "3.0.0",
-            },
-        ]
-    )
+    return json.dumps(get_metas_dict())

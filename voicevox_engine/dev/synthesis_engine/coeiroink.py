@@ -1,4 +1,6 @@
+import glob
 import time
+from pathlib import Path
 from typing import List, NamedTuple
 
 import librosa
@@ -13,6 +15,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.bin.tts_inference import Text2Speech
 from sklearn.preprocessing import StandardScaler
 
+from ..core.coeiroink import get_metas_dict
 from ...model import AccentPhrase, AudioQuery
 from ...synthesis_engine import SynthesisEngineBase
 
@@ -63,22 +66,20 @@ class EspnetModel:
 
     @classmethod
     def get_character_model(cls, use_gpu, speaker_id, speed_scale=1.0):
-        if speaker_id in [0, 5, 6]:
-            uuid = '3c37646f-3881-5374-2a83-149267990abc'
-        elif speaker_id in [1]:
-            uuid = '292ea286-3d5f-f1cc-157c-66462a6a9d08'
-        elif speaker_id in [2]:
-            uuid = 'a60ebf6c-626a-7ce6-5d69-c92bf2a1a1d0'
-        elif speaker_id in [3]:
-            uuid = 'b28bb401-bc43-c9c7-77e4-77a2bbb4b283'
-        elif speaker_id in [4]:
-            uuid = 'c97966b1-d80c-04f5-aba5-d30a92843b59'
-        else:
-            raise Exception("error")
+        uuid = None
+        metas = get_metas_dict()
+        for meta in metas:
+            for style in meta['styles']:
+                if speaker_id == style['id']:
+                    uuid = meta['speaker_uuid']
+        if uuid is None:
+            raise Exception("Not Found Speaker Directory")
 
         acoustic_model_folder_path = f"./speaker_info/{uuid}/model/{speaker_id}"
+        model_files = sorted(glob.glob(acoustic_model_folder_path + '/*.pth'))
+
         return cls.get_espnet_model(
-            acoustic_model_path=f"{acoustic_model_folder_path}/100epoch.pth",
+            acoustic_model_path=model_files[0],
             acoustic_model_config_path=f"{acoustic_model_folder_path}/config.yaml",
             use_gpu=use_gpu,
             speed_scale=speed_scale
@@ -92,7 +93,8 @@ class MockSynthesisEngine(SynthesisEngineBase):
         self.default_sampling_rate = 44100
         self.use_gpu = False
 
-        self.previous_speaker_id = 0
+        metas = get_metas_dict()
+        self.previous_speaker_id = metas[0]['styles'][0]['id']
         self.previous_speed_scale = 1.0
 
         self.current_speaker_models: EspnetModel = \
