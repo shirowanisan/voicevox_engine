@@ -110,9 +110,9 @@ class MockSynthesisEngine(SynthesisEngineBase):
     def replace_mora_pitch(accent_phrases: List[AccentPhrase], speaker_id: int) -> List[AccentPhrase]:
         return accent_phrases
 
-    def _synthesis_impl(self, query: AudioQuery, speaker_id: int, text: str = '') -> np.ndarray:
+    def _synthesis_impl(self, query: AudioQuery, speaker_id: int) -> np.ndarray:
         start_time = time.time()
-        tokens = self.query2tokens_prosody(query, text)
+        tokens = self.query2tokens_prosody(query)
 
         if self.previous_speaker_id != speaker_id or self.previous_speed_scale != query.speedScale:
             self.current_speaker_models = None
@@ -150,14 +150,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
         return wave
 
     @staticmethod
-    def query2tokens_prosody(query: AudioQuery, text=''):
-        question_flag = False
-        if query.kana != '':
-            if query.kana[-1] in ['?', '？']:
-                question_flag = True
-        if text != '':
-            if text[-1] in ['?', '？']:
-                question_flag = True
+    def query2tokens_prosody(query: AudioQuery):
         tokens = ['^']
         for i, accent_phrase in enumerate(query.accent_phrases):
             up_token_flag = False
@@ -178,7 +171,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
                     tokens.append('_')
                 else:
                     tokens.append('#')
-        if question_flag:
+        if query.accent_phrases[-1].is_interrogative:
             tokens.append('?')
         else:
             tokens.append('$')
