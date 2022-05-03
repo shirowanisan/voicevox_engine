@@ -6,6 +6,7 @@ from typing import List, NamedTuple
 import librosa
 import numpy as np
 import pyopenjtalk
+import pyworld as pw
 import resampy
 import sklearn.neighbors._partition_nodes
 import sklearn.utils._typedefs
@@ -130,6 +131,20 @@ class MockSynthesisEngine(SynthesisEngineBase):
         if query.volumeScale != 1:
             wave *= query.volumeScale
 
+        # pitch, intonation
+        if query.pitchScale != 0 or query.intonationScale != 1:
+            f0, sp, ap = self.get_world(wave.astype(np.float64), query.outputSamplingRate)
+            # pitch
+            if query.pitchScale != 0:
+                f0 *= 2 ** query.pitchScale
+            # intonation
+            if query.intonationScale != 1:
+                m = f0.mean()
+                s = f0.std()
+                f0_tmp = (f0 - m) / s
+                f0 = (f0_tmp * (s * query.intonationScale)) + m
+            wave = self.get_wav_from_world(f0, sp, ap, query.outputSamplingRate).astype(np.float32)
+
         # add sil
         if query.prePhonemeLength != 0 or query.postPhonemeLength != 0:
             pre_pause = np.zeros(int(self.default_sampling_rate * query.prePhonemeLength))
@@ -176,3 +191,16 @@ class MockSynthesisEngine(SynthesisEngineBase):
         else:
             tokens.append('$')
         return tokens
+
+    @staticmethod
+    def get_world(wave, fs):
+        _f0, t = pw.dio(wave, fs)
+        f0 = pw.stonemask(wave, _f0, t, fs)
+        sp = pw.cheaptrick(wave, f0, t, fs)
+        ap = pw.d4c(wave, f0, t, fs)
+        return f0, sp, ap
+
+    @staticmethod
+    def get_wav_from_world(f0, sp, ap, fs):
+        wav = pw.synthesize(f0, sp, ap, fs)
+        return wav
