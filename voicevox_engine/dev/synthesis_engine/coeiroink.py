@@ -124,7 +124,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
         wave = self.current_speaker_models.make_voice(tokens)
 
         # trim
-        wave, _ = librosa.effects.trim(wave)
+        wave, _ = librosa.effects.trim(wave, top_db=30)
 
         # volume
         if query.volumeScale != 1:
