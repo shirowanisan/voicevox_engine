@@ -157,7 +157,7 @@ def generate_licenses() -> List[License]:
         )
 
     # Python
-    python_version = "3.8.10"
+    python_version = "3.9.12"
     with urllib.request.urlopen(
         f"https://raw.githubusercontent.com/python/cpython/v{python_version}/LICENSE"
     ) as res:
@@ -249,6 +249,11 @@ def generate_licenses() -> List[License]:
             elif license.name.lower() == "sentencepiece":
                 with urllib.request.urlopen(
                     "https://raw.githubusercontent.com/google/sentencepiece/master/LICENSE"
+                ) as res:
+                    license.text = res.read().decode()
+            elif license.name.lower() == "platformdirs":
+                with urllib.request.urlopen(
+                    "https://raw.githubusercontent.com/platformdirs/platformdirs/main/LICENSE.txt"
                 ) as res:
                     license.text = res.read().decode()
             elif license.name.lower() == "torch-complex":
