@@ -167,6 +167,8 @@ class MockSynthesisEngine(SynthesisEngineBase):
     @staticmethod
     def query2tokens_prosody(query: AudioQuery):
         tokens = ['^']
+        if not query.accent_phrases:
+            return tokens
         for i, accent_phrase in enumerate(query.accent_phrases):
             up_token_flag = False
             for j, mora in enumerate(accent_phrase.moras):
