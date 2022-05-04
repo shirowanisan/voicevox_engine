@@ -7,4 +7,4 @@ soundfile
 scipy
 PyYAML
 pyworld
-git+https://github.com/VOICEVOX/pyopenjtalk@a85521a0a0f298f08d9e9b24987b3c77eb4aaff5#egg=pyopenjtalk
+pyopenjtalk==0.1.3
