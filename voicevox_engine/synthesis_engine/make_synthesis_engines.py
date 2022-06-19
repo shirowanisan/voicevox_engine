@@ -69,33 +69,33 @@ def make_synthesis_engines(
 
     load_runtime_lib(runtime_dirs)
     synthesis_engines = {}
-    for core_dir in voicelib_dirs:
-        try:
-            core = CoreWrapper(use_gpu, core_dir, cpu_num_threads, load_all_models)
-            metas = json.loads(core.metas())
-            core_version = metas[0]["version"]
-            if core_version in synthesis_engines:
-                print(
-                    "Warning: Core loading is skipped because of version duplication.",
-                    file=sys.stderr,
-                )
-                continue
-            synthesis_engines[core_version] = SynthesisEngine(core=core)
-        except Exception:
-            if not enable_mock:
-                raise
-            traceback.print_exc()
-            print(
-                "Notice: mock-library will be used. Try re-run with valid --voicevox_dir",
-                file=sys.stderr,
-            )
-            from ..dev.core import metas as mock_metas
-            from ..dev.core import supported_devices as mock_supported_devices
-            from ..dev.synthesis_engine import MockSynthesisEngine
+    # for core_dir in voicelib_dirs:
+    #     try:
+    #         core = CoreWrapper(use_gpu, core_dir, cpu_num_threads, load_all_models)
+    #         metas = json.loads(core.metas())
+    #         core_version = metas[0]["version"]
+    #         if core_version in synthesis_engines:
+    #             print(
+    #                 "Warning: Core loading is skipped because of version duplication.",
+    #                 file=sys.stderr,
+    #             )
+    #             continue
+    #         synthesis_engines[core_version] = SynthesisEngine(core=core)
+    #     except Exception:
+    #         if not enable_mock:
+    #             raise
+    #         traceback.print_exc()
+    #         print(
+    #             "Notice: mock-library will be used. Try re-run with valid --voicevox_dir",
+    #             file=sys.stderr,
+    #         )
+    from ..dev.core import metas as mock_metas
+    from ..dev.core import supported_devices as mock_supported_devices
+    from ..dev.synthesis_engine import MockSynthesisEngine
 
-            if "0.0.0" not in synthesis_engines:
-                synthesis_engines["0.0.0"] = MockSynthesisEngine(
-                    speakers=mock_metas(), supported_devices=mock_supported_devices()
-                )
+    if "0.0.0" not in synthesis_engines:
+        synthesis_engines["0.0.0"] = MockSynthesisEngine(
+            speakers=mock_metas(), supported_devices=mock_supported_devices()
+        )
 
     return synthesis_engines

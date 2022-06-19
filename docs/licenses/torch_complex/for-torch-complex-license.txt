@@ -1,0 +1,4 @@
+(c) Naoyuki Kamo
+pypi: https://pypi.org/project/torch-complex/
+github: https://github.com/kamo-naoyuki/pytorch_complex
+LICENCE: https://www.apache.org/licenses/LICENSE-2.0

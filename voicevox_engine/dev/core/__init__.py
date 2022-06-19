@@ -1,4 +1,4 @@
-from .mock import (
+from .coeiroink import (
     decode_forward,
     initialize,
     metas,

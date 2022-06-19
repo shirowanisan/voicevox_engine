@@ -291,12 +291,14 @@ def generate_app(
             description="疑問系のテキストが与えられたら語尾を自動調整する",
         ),
         core_version: Optional[str] = None,
+        text: str = '',
     ):
         engine = get_engine(core_version)
         wave = engine.synthesis(
             query=query,
             speaker_id=speaker,
             enable_interrogative_upspeak=enable_interrogative_upspeak,
+            text=text
         )
 
         with NamedTemporaryFile(delete=False) as f:
@@ -749,7 +751,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=50021)
+    parser.add_argument("--port", type=int, default=50031)
     parser.add_argument("--use_gpu", action="store_true")
     parser.add_argument("--voicevox_dir", type=Path, default=None)
     parser.add_argument("--voicelib_dir", type=Path, default=None, action="append")

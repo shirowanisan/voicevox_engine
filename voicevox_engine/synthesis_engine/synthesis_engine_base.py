@@ -208,6 +208,7 @@ class SynthesisEngineBase(metaclass=ABCMeta):
         query: AudioQuery,
         speaker_id: int,
         enable_interrogative_upspeak: bool = True,
+        text: str = '',
     ) -> str:
         """
         音声合成クエリ内の疑問文指定されたMoraを変形した後、
@@ -231,10 +232,10 @@ class SynthesisEngineBase(metaclass=ABCMeta):
             query.accent_phrases = adjust_interrogative_accent_phrases(
                 query.accent_phrases
             )
-        return self._synthesis_impl(query, speaker_id)
+        return self._synthesis_impl(query, speaker_id, text)
 
     @abstractmethod
-    def _synthesis_impl(self, query: AudioQuery, speaker_id: int):
+    def _synthesis_impl(self, query: AudioQuery, speaker_id: int, text: str):
         """
         音声合成クエリから音声合成に必要な情報を構成し、実際に音声合成を行う
         Parameters

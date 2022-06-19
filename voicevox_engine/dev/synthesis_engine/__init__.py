@@ -1,3 +1,3 @@
-from .mock import MockSynthesisEngine
+from .coeiroink import MockSynthesisEngine
 
 __all__ = ["MockSynthesisEngine"]

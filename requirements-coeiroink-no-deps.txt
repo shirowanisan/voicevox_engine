@@ -1,0 +1,1 @@
+git+https://git@github.com/shirowanisan/espnet@espnet-1.10.3
