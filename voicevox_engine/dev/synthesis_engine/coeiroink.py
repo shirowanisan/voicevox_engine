@@ -96,7 +96,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
         self._supported_devices = supported_devices
 
         self.default_sampling_rate = 44100
-        self.use_gpu = False
+        self.use_gpu = True
 
         metas = get_metas_dict()
         self.previous_speaker_id = metas[0]['styles'][0]['id']
