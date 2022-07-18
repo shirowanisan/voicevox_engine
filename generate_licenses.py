@@ -256,7 +256,7 @@ def generate_licenses() -> List[License]:
                     license.text = res.read().decode()
             elif license.name.lower() == "platformdirs":
                 with urllib.request.urlopen(
-                        "https://raw.githubusercontent.com/platformdirs/platformdirs/main/LICENSE.txt"
+                        "https://raw.githubusercontent.com/platformdirs/platformdirs/main/LICENSE"
                 ) as res:
                     license.text = res.read().decode()
             elif license.name.lower() == "torch-complex":
