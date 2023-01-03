@@ -1,7 +1,108 @@
 [
-    {
-        "version": "0.0.1",
-        "descriptions": ["dummy descriptions"],
-        "contributors": ["dummy contributor"]
-    }
+  {
+    "version": "COEIROINK-1.7.0+VOICEVOX-0.14.0",
+    "descriptions": [
+      "VOICEVOXのバージョンを0.14.0にアップデート"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.6.0+VOICEVOX-0.12.3",
+    "descriptions": [
+      "音声ライブラリダウンロード機能の実装",
+      "キャラクター追加・削除時のエラーを修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.5.0+VOICEVOX-0.12.3",
+    "descriptions": [
+      "VOICEVOXのバージョンを0.12.3にアップデート",
+      "アクセントを変えても疑問符を判断するように修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.4.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "MANA（いっしょうけんめい）の音声ライブラリを追加",
+      "おふとんP（ナレーション）の音声ライブラリを追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.3.1+VOICEVOX-0.10.4",
+    "descriptions": [
+      "無音で再生したときにエラーになる不具合を修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.3.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "各キャラで先頭と末尾の無音区間が異なる不具合を修正",
+      "音高と抑揚の調節機能追加",
+      "内部的に疑問符を判断する機能の追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.2.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "つくよみちゃん（れいせい）の音声ライブラリをアップデート",
+      "つくよみちゃん（おしとやか）の音声ライブラリをアップデート",
+      "つくよみちゃん（げんき）の音声ライブラリをアップデート",
+      "おふとんPの音声ライブラリをアップデート",
+      "ディアちゃんの音声ライブラリをアップデート",
+      "アルマちゃんの音声ライブラリをアップデート"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.1.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "つくよみちゃん（れいせい）の音声ライブラリをアップデート",
+      "MANAの音声ライブラリをアップデート",
+      "MYCOEIROINK追加機能を実装"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.0.1+VOICEVOX-0.10.4",
+    "descriptions": [
+      "PCのユーザー名が日本語名だと起動しない不具合を修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.0.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "高音質化（サンプリング周波数 24Hz → 44.1Hz）",
+      "話速調節機能追加",
+      "つくよみちゃんスタイル（れいせい・おしとやか・げんき）変更機能追加",
+      "ディアちゃんの音声ライブラリを追加",
+      "アルマちゃんの音声ライブラリを追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.2.0+VOICEVOX-0.7.5",
+    "descriptions": ["おふとんPの音声ライブラリを追加"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.1.0+VOICEVOX-0.7.5",
+    "descriptions": ["MANAの音声ライブラリを追加"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.0.2+VOICEVOX-0.7.5",
+    "descriptions": ["初期状態に音声ライブラリを含むように変更"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.0.1+VOICEVOX-0.7.5",
+    "descriptions": ["初回リリース"],
+    "contributors": []
+  }
 ]
