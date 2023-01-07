@@ -144,15 +144,26 @@ class SpeakerInfo(BaseModel):
     style_infos: List[StyleInfo] = Field(title="スタイルの追加情報")
 
 
-class DownloadableLibrary(BaseModel):
+class DownloadableModel(BaseModel):
     """
     ダウンロード可能な音声ライブラリの情報（最新情報をwebで取得することを考慮して、ローカルの情報はない）
     """
 
-    download_url: str = Field(title="音声ライブラリのダウンロードURL")
-    bytes: int = Field(title="音声ライブラリのバイト数")
+    download_path: str = Field(title="音声ライブラリのダウンロードURL")
+    volume: str = Field(title="音声ライブラリのバイト数")
     speaker: Speaker = Field(title="話者情報")
     speaker_info: SpeakerInfo = Field(title="話者の追加情報")
+
+
+class DownloadInfo(BaseModel):
+    """
+    ダウンロード話者情報（ローカルの情報が付与されたもの）
+    """
+
+    downloadable_model: DownloadableModel = Field(title="ダンロードモデル情報")
+    current_version: str = Field(title="現在のバージョン")
+    character_exists: bool = Field(title="このキャラクターのライブラリがローカルに存在するか")
+    latest_model_exists: bool = Field(title="最新モデルがローカルに存在するか")
 
 
 USER_DICT_MIN_PRIORITY = 0
