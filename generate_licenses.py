@@ -75,7 +75,7 @@ def generate_licenses() -> List[License]:
     ) as res:
         licenses.append(
             License(
-                name="voicevox",
+                name="VOICEVOX",
                 version="0.14.0-modified-by-shirowanisan",
                 license="LGPL license",
                 text=res.read().decode(),
