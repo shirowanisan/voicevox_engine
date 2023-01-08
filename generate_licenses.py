@@ -69,6 +69,19 @@ def generate_licenses() -> List[License]:
     #         )
     #     )
 
+    # VOICEVOX
+    with urllib.request.urlopen(
+            "https://raw.githubusercontent.com/VOICEVOX/voicevox/main/LGPL_LICENSE"
+    ) as res:
+        licenses.append(
+            License(
+                name="voicevox",
+                version="0.14.0-modified-by-shirowanisan",
+                license="LGPL license",
+                text=res.read().decode(),
+            )
+        )
+
     # VOICEVOX ENGINE
     with urllib.request.urlopen(
         "https://raw.githubusercontent.com/VOICEVOX/voicevox_engine/master/LGPL_LICENSE"
@@ -204,6 +217,8 @@ def generate_licenses() -> List[License]:
             elif license.name.lower() == "torch-complex":
                 with open('docs/licenses/torch_complex/for-torch-complex-license.txt') as f:
                     license.text = '\n'.join(f.readlines())
+            elif license.name.lower() == "coeirocore":
+                continue
             else:
                 # ライセンスがpypiに無い
                 raise Exception(f"No License info provided for {license.name}")
