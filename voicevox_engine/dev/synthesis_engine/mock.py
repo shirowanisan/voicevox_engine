@@ -44,7 +44,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
         return accent_phrases
 
     def _synthesis_impl(self, query: AudioQuery, speaker_id: int) -> np.ndarray:
-        tokens = query2tokens_prosody(query, '')
+        tokens = query2tokens_prosody(query)
         return self.audio_manager.synthesis(
             text=tokens,
             style_id=speaker_id,
