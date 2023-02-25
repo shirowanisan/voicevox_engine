@@ -1,8 +1,9 @@
 {
     "manifest_version": "0.13.1",
     "name": "COEIROINK Engine",
+    "brand_name": "COEIROINK",
     "uuid": "7505c175-3861-4e04-845f-d1032abbbf1f",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "url": "https://coeiroink.com",
     "command": "run",
     "port": 50031,

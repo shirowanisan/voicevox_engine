@@ -50,7 +50,7 @@ curl -s \
 
 生成される音声はサンプリングレートが 24000Hz と少し特殊なため、音声プレーヤーによっては再生できない場合があります。
 
-`speaker` に指定する値は `/speakers` エンドポイントで得られる `styleId` です。互換性のために `speaker` という名前になっています。
+`speaker` に指定する値は `/speakers` エンドポイントで得られる `style_id` です。互換性のために `speaker` という名前になっています。
 
 ### 読み方を AquesTalk 記法で取得・修正するサンプルコード
 
@@ -267,6 +267,19 @@ curl -s -X GET "localhost:50021/speaker_info?speaker_uuid=7ffcb7ce-00ec-4bdc-82c
 この API は実験的機能であり、エンジン起動時に引数で`--enable_cancellable_synthesis`を指定しないと有効化されません。  
 音声合成に必要なパラメータは`/synthesis`と同様です。
 
+### CORS設定
+
+VOICEVOXではセキュリティ保護のため`localhost`・`127.0.0.1`・`app://`・Originなし以外のOriginからリクエストを受け入れないようになっています。
+そのため、一部のサードパーティアプリからのレスポンスを受け取れない可能性があります。  
+これを回避する方法として、エンジンから設定できるUIを用意しています。
+
+#### 設定方法
+
+1. <http://127.0.0.1:50021/setting> にアクセスします。
+2. 利用するアプリに合わせて設定を変更、追加してください。
+3. 保存ボタンを押して、変更を確定してください。
+4. 設定の適用にはエンジンの再起動が必要です。必要に応じて再起動をしてください。
+
 ## アップデート
 
 エンジンディレクトリ内にあるファイルを全て消去し、新しいものに置き換えてください。
@@ -299,7 +312,7 @@ Issue 側で取り組み始めたことを伝えるか、最初に Draft プル�
 
 ```bash
 # 開発に必要なライブラリのインストール
-python -m pip install -r requirements-test.txt
+python -m pip install -r requirements-dev.txt -r requirements-test.txt
 
 # とりあえず実行したいだけなら代わりにこちら
 python -m pip install -r requirements.txt
@@ -342,7 +355,7 @@ python run.py --output_log_utf8
 
 CPU スレッド数が未指定の場合は、論理コア数の半分か物理コア数が使われます。（殆どの CPU で、これは全体の処理能力の半分です）  
 もし IaaS 上で実行していたり、専用サーバーで実行している場合など、  
-VOICEVOX ENGINE が使う処理能力を調節したい場合は、CPU スレッド数を指定することで実現できます。
+エンジンが使う処理能力を調節したい場合は、CPU スレッド数を指定することで実現できます。
 
 - 実行時引数で指定する
 
@@ -400,9 +413,23 @@ pre-commit install -t pre-push
 pysen run format lint
 ```
 
-## API ドキュメントの更新
+## タイポチェック
 
-[API ドキュメント](https://voicevox.github.io/voicevox_engine/api/)（実体は`docs/api/index.html`）の内容を更新します。
+[typos](https://github.com/crate-ci/typos) を使ってタイポのチェックを行っています。
+[typos をインストール](https://github.com/crate-ci/typos#install) した後
+
+```bash
+typos
+```
+
+でタイポチェックを行えます。
+もし誤判定やチェックから除外すべきファイルがあれば
+[設定ファイルの説明](https://github.com/crate-ci/typos#false-positives) に従って`_typos.toml`を編集してください。
+
+## API ドキュメントの確認
+
+[API ドキュメント](https://voicevox.github.io/voicevox_engine/api/)（実体は`docs/api/index.html`）は自動で更新されます。  
+次のコマンドで API ドキュメントを手動で作成することができます。
 
 ```bash
 python make_docs.py
@@ -416,7 +443,8 @@ python make_docs.py
 ```bash
 python -m pip install -r requirements-dev.txt
 
-python generate_licenses.py > licenses.json
+OUTPUT_LICENSE_JSON_PATH=licenses.json \
+bash build_util/create_venv_and_generate_licenses.bash
 
 # ビルド自体はLIBCORE_PATH及びLIBONNXRUNTIME_PATHの指定がなくても可能です
 LIBCORE_PATH="/path/to/libcore" \
@@ -428,14 +456,24 @@ LIBCORE_PATH="/path/to/libcore" \
 
 ### 更新
 
-pip-tools を用いて依存ライブラリのバージョンを固定しています。
-`requirements*.in`ファイルを修正後、以下のコマンドで更新できます。
+[Poetry](https://python-poetry.org/) を用いて依存ライブラリのバージョンを固定しています。
+以下のコマンドで操作できます:
 
 ```bash
-# pip>=22 の場合 pip-tools がエラーになります
-pip-compile requirements.in  # こちらを更新する場合は下２つも更新する必要があります。
-pip-compile requirements-dev.in
-pip-compile requirements-test.in
+# パッケージを追加する場合
+poetry add `パッケージ名`
+poetry add --group dev `パッケージ名` # 開発依存の追加
+poetry add --group test `パッケージ名` # テスト依存の追加
+
+# パッケージをアップデートする場合
+poetry update `パッケージ名`
+poetry update # 全部更新
+
+# requirements.txtの更新
+poetry export --without-hashes -o requirements.txt # こちらを更新する場合は下３つも更新する必要があります。
+poetry export --without-hashes --with dev -o requirements-dev.txt
+poetry export --without-hashes --with test -o requirements-test.txt
+poetry export --without-hashes --with license -o requirements-license.txt
 ```
 
 ### ライセンス

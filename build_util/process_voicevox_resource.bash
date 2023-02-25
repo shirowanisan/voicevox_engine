@@ -1,12 +1,15 @@
 set -eux
 
-if [ -v "${DOWNLOAD_RESOURCE_PATH}" ]; then
+if [ ! -v DOWNLOAD_RESOURCE_PATH ]; then
     echo "DOWNLOAD_RESOURCE_PATHが未定義です"
     exit 1
 fi
 
 rm -r speaker_info
 cp -r $DOWNLOAD_RESOURCE_PATH/character_info speaker_info
+
+# .png_largeファイルを消去する
+rm speaker_info/*/icons/*.png_large
 
 # マニフェスト
 jq -s '.[0] * .[1]' engine_manifest.json $DOWNLOAD_RESOURCE_PATH/engine/engine_manifest.json \

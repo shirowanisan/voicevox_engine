@@ -10,7 +10,6 @@ import sys
 import traceback
 import zipfile
 from distutils.version import LooseVersion
-from enum import Enum
 from functools import lru_cache
 from io import TextIOWrapper
 from pathlib import Path
@@ -20,10 +19,10 @@ from typing import Dict, List, Optional
 import requests
 import soundfile
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.params import Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError, conint
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse
@@ -33,25 +32,39 @@ from voicevox_engine.cancellable_engine import CancellableEngine
 from voicevox_engine.engine_manifest import EngineManifestLoader
 from voicevox_engine.engine_manifest.EngineManifest import EngineManifest
 from voicevox_engine.kana_parser import create_kana, parse_kana
+from voicevox_engine.metas.MetasStore import MetasStore, construct_lookup
 from voicevox_engine.model import (
     AccentPhrase,
     AudioQuery,
     DownloadableModel,
     DownloadInfo,
+    DownloadableLibrary,
+    MorphableTargetInfo,
     ParseKanaBadRequest,
     ParseKanaError,
     Speaker,
     SpeakerInfo,
+    SpeakerNotFoundError,
     SupportedDevicesInfo,
     UserDictWord,
     WordTypes,
 )
-from voicevox_engine.morphing import synthesis_morphing
+from voicevox_engine.morphing import (
+    get_morphable_targets,
+    is_synthesis_morphing_permitted,
+    synthesis_morphing,
+)
 from voicevox_engine.morphing import (
     synthesis_morphing_parameter as _synthesis_morphing_parameter,
 )
 from voicevox_engine.part_of_speech_data import MAX_PRIORITY, MIN_PRIORITY
-from voicevox_engine.preset import Preset, PresetLoader
+from voicevox_engine.preset import Preset, PresetError, PresetManager
+from voicevox_engine.setting import (
+    USER_SETTING_PATH,
+    CorsPolicyMode,
+    Setting,
+    SettingLoader,
+)
 from voicevox_engine.synthesis_engine import SynthesisEngineBase, make_synthesis_engines
 from voicevox_engine.user_dict import (
     apply_word,
@@ -67,11 +80,6 @@ from voicevox_engine.utility import (
     delete_file,
     engine_root,
 )
-
-
-class CorsPolicyMode(str, Enum):
-    all = "all"
-    localapps = "localapps"
 
 
 def b64encode_str(s):
@@ -106,6 +114,7 @@ def set_output_log_utf8() -> None:
 def generate_app(
     synthesis_engines: Dict[str, SynthesisEngineBase],
     latest_core_version: str,
+    setting_loader: SettingLoader,
     root_dir: Optional[Path] = None,
     cors_policy_mode: CorsPolicyMode = CorsPolicyMode.localapps,
     allow_origin: Optional[List[str]] = None,
@@ -116,7 +125,7 @@ def generate_app(
     default_sampling_rate = synthesis_engines[latest_core_version].default_sampling_rate
 
     app = FastAPI(
-        title="VOICEVOX ENGINE",
+        title="VOICEVOX Engine",
         description="VOICEVOXの音声合成エンジンです。",
         version=__version__,
     )
@@ -167,12 +176,16 @@ def generate_app(
                 status_code=403, content={"detail": "Origin not allowed"}
             )
 
-    preset_loader = PresetLoader(
+    preset_manager = PresetManager(
         preset_path=root_dir / "presets.yaml",
     )
     engine_manifest_loader = EngineManifestLoader(
         root_dir / "engine_manifest.json", root_dir
     )
+
+    metas_store = MetasStore(root_dir / "speaker_info")
+
+    setting_ui_template = Jinja2Templates(directory=engine_root() / "ui_template")
 
     # キャッシュを有効化
     # モジュール側でlru_cacheを指定するとキャッシュを制御しにくいため、HTTPサーバ側で指定する
@@ -234,9 +247,10 @@ def generate_app(
         クエリの初期値を得ます。ここで得られたクエリはそのまま音声合成に利用できます。各値の意味は`Schemas`を参照してください。
         """
         engine = get_engine(core_version)
-        presets, err_detail = preset_loader.load_presets()
-        if err_detail:
-            raise HTTPException(status_code=422, detail=err_detail)
+        try:
+            presets = preset_manager.load_presets()
+        except PresetError as err:
+            raise HTTPException(status_code=422, detail=str(err))
         for preset in presets:
             if preset.id == preset_id:
                 selected_preset = preset
@@ -482,6 +496,39 @@ def generate_app(
         )
 
     @app.post(
+        "/morphable_targets",
+        response_model=List[Dict[str, MorphableTargetInfo]],
+        tags=["音声合成"],
+        summary="指定した話者に対してエンジン内の話者がモーフィングが可能か判定する",
+    )
+    def morphable_targets(
+        base_speakers: List[int],
+        core_version: Optional[str] = None,
+    ):
+        """
+        指定されたベース話者に対してエンジン内の各話者がモーフィング機能を利用可能か返します。
+        モーフィングの許可/禁止は`/speakers`の`speaker.supported_features.synthesis_morphing`に記載されています。
+        プロパティが存在しない場合は、モーフィングが許可されているとみなします。
+        返り値の話者はstring型なので注意。
+        """
+        engine = get_engine(core_version)
+
+        try:
+            speakers = metas_store.load_combined_metas(engine=engine)
+            morphable_targets = get_morphable_targets(
+                speakers=speakers, base_speakers=base_speakers
+            )
+            # jsonはint型のキーを持てないので、string型に変換する
+            return [
+                {str(k): v for k, v in morphable_target.items()}
+                for morphable_target in morphable_targets
+            ]
+        except SpeakerNotFoundError as e:
+            raise HTTPException(
+                status_code=404, detail=f"該当する話者(speaker={e.speaker})が見つかりません"
+            )
+
+    @app.post(
         "/synthesis_morphing",
         response_class=FileResponse,
         responses={
@@ -506,6 +553,22 @@ def generate_app(
         モーフィングの割合は`morph_rate`で指定でき、0.0でベースの話者、1.0でターゲットの話者に近づきます。
         """
         engine = get_engine(core_version)
+
+        try:
+            speakers = metas_store.load_combined_metas(engine=engine)
+            speaker_lookup = construct_lookup(speakers=speakers)
+            is_permitted = is_synthesis_morphing_permitted(
+                speaker_lookup, base_speaker, target_speaker
+            )
+            if not is_permitted:
+                raise HTTPException(
+                    status_code=400,
+                    detail="指定された話者ペアでのモーフィングはできません",
+                )
+        except SpeakerNotFoundError as e:
+            raise HTTPException(
+                status_code=404, detail=f"該当する話者(speaker={e.speaker})が見つかりません"
+            )
 
         # 生成したパラメータはキャッシュされる
         morph_param = synthesis_morphing_parameter(
@@ -581,10 +644,72 @@ def generate_app(
         presets: List[Preset]
             プリセットのリスト
         """
-        presets, err_detail = preset_loader.load_presets()
-        if err_detail:
-            raise HTTPException(status_code=422, detail=err_detail)
+        try:
+            presets = preset_manager.load_presets()
+        except PresetError as err:
+            raise HTTPException(status_code=422, detail=str(err))
         return presets
+
+    @app.post("/add_preset", response_model=int, tags=["その他"])
+    def add_preset(preset: Preset):
+        """
+        新しいプリセットを追加します
+
+        Parameters
+        -------
+        preset: Preset
+            新しいプリセット。
+            プリセットIDが既存のものと重複している場合は、新規のプリセットIDが採番されます。
+
+        Returns
+        -------
+        id: int
+            追加したプリセットのプリセットID
+        """
+        try:
+            id = preset_manager.add_preset(preset)
+        except PresetError as err:
+            raise HTTPException(status_code=422, detail=str(err))
+        return id
+
+    @app.post("/update_preset", response_model=int, tags=["その他"])
+    def update_preset(preset: Preset):
+        """
+        既存のプリセットを更新します
+
+        Parameters
+        -------
+        preset: Preset
+            更新するプリセット。
+            プリセットIDが更新対象と一致している必要があります。
+
+        Returns
+        -------
+        id: int
+            更新したプリセットのプリセットID
+        """
+        try:
+            id = preset_manager.update_preset(preset)
+        except PresetError as err:
+            raise HTTPException(status_code=422, detail=str(err))
+        return id
+
+    @app.post("/delete_preset", status_code=204, tags=["その他"])
+    def delete_preset(id: int):
+        """
+        既存のプリセットを削除します
+
+        Parameters
+        -------
+        id: int
+            削除するプリセットのプリセットID
+
+        """
+        try:
+            preset_manager.delete_preset(id)
+        except PresetError as err:
+            raise HTTPException(status_code=422, detail=str(err))
+        return Response(status_code=204)
 
     @app.get("/version", tags=["その他"])
     def version() -> str:
@@ -602,10 +727,7 @@ def generate_app(
         core_version: Optional[str] = None,
     ):
         engine = get_engine(core_version)
-        return Response(
-            content=engine.speakers,
-            media_type="application/json",
-        )
+        return metas_store.load_combined_metas(engine=engine)
 
     @app.get("/speaker_info", response_model=SpeakerInfo, tags=["その他"])
     def speaker_info(speaker_uuid: str, core_version: Optional[str] = None):
@@ -640,6 +762,14 @@ def generate_app(
                         root_dir / f"speaker_info/{speaker_uuid}/icons/{id}.png"
                     ).read_bytes()
                 )
+                style_portrait_path = (
+                    root_dir / f"speaker_info/{speaker_uuid}/portraits/{id}.png"
+                )
+                style_portrait = (
+                    b64encode_str(style_portrait_path.read_bytes())
+                    if style_portrait_path.exists()
+                    else None
+                )
                 voice_samples = [
                     b64encode_str(
                         (
@@ -652,7 +782,12 @@ def generate_app(
                     for j in range(3)
                 ]
                 style_infos.append(
-                    {"id": id, "icon": icon, "voice_samples": voice_samples}
+                    {
+                        "id": id,
+                        "icon": icon,
+                        "portrait": style_portrait,
+                        "voice_samples": voice_samples,
+                    }
                 )
         except FileNotFoundError:
             import traceback
@@ -746,13 +881,19 @@ def generate_app(
         return ret_data
 
     @app.post("/initialize_speaker", status_code=204, tags=["その他"])
-    def initialize_speaker(speaker: int, core_version: Optional[str] = None):
+    def initialize_speaker(
+        speaker: int,
+        skip_reinit: bool = Query(  # noqa: B008
+            False, description="既に初期化済みの話者の再初期化をスキップするかどうか"
+        ),
+        core_version: Optional[str] = None,
+    ):
         """
         指定されたspeaker_idの話者を初期化します。
         実行しなくても他のAPIは使用できますが、初回実行時に時間がかかることがあります。
         """
         engine = get_engine(core_version)
-        engine.initialize_speaker_synthesis(speaker)
+        engine.initialize_speaker_synthesis(speaker_id=speaker, skip_reinit=skip_reinit)
         return Response(status_code=204)
 
     @app.get("/is_initialized_speaker", response_model=bool, tags=["その他"])
@@ -924,6 +1065,51 @@ def generate_app(
     def engine_manifest():
         return engine_manifest_loader.load_manifest()
 
+    @app.get("/setting", response_class=HTMLResponse, tags=["設定"])
+    def setting_get(request: Request):
+        settings = setting_loader.load_setting_file()
+
+        cors_policy_mode = settings.cors_policy_mode
+        allow_origin = settings.allow_origin
+
+        if allow_origin is None:
+            allow_origin = ""
+
+        return setting_ui_template.TemplateResponse(
+            "ui.html",
+            {
+                "request": request,
+                "cors_policy_mode": cors_policy_mode,
+                "allow_origin": allow_origin,
+            },
+        )
+
+    @app.post("/setting", response_class=HTMLResponse, tags=["設定"])
+    def setting_post(
+        request: Request,
+        cors_policy_mode: Optional[str] = Form(None),  # noqa: B008
+        allow_origin: Optional[str] = Form(None),  # noqa: B008
+    ):
+        settings = Setting(
+            cors_policy_mode=cors_policy_mode,
+            allow_origin=allow_origin,
+        )
+
+        # 更新した設定へ上書き
+        setting_loader.dump_setting_file(settings)
+
+        if allow_origin is None:
+            allow_origin = ""
+
+        return setting_ui_template.TemplateResponse(
+            "ui.html",
+            {
+                "request": request,
+                "cors_policy_mode": cors_policy_mode,
+                "allow_origin": allow_origin,
+            },
+        )
+
     return app
 
 
@@ -938,6 +1124,8 @@ if __name__ == "__main__":
             "WARNING:  invalid VV_OUTPUT_LOG_UTF8 environment variable value",
             file=sys.stderr,
         )
+
+    default_cors_policy_mode = CorsPolicyMode.localapps
 
     parser = argparse.ArgumentParser(description="VOICEVOX のエンジンです。")
     parser.add_argument(
@@ -986,29 +1174,39 @@ if __name__ == "__main__":
         "--cpu_num_threads",
         type=int,
         default=os.getenv("VV_CPU_NUM_THREADS") or None,
-        help="音声合成を行うスレッド数です。指定しないと、代わりに環境変数VV_CPU_NUM_THREADSの値が使われます。"
-        "VV_CPU_NUM_THREADSが空文字列でなく数値でもない場合はエラー終了します。",
+        help=(
+            "音声合成を行うスレッド数です。指定しないと、代わりに環境変数VV_CPU_NUM_THREADSの値が使われます。"
+            "VV_CPU_NUM_THREADSが空文字列でなく数値でもない場合はエラー終了します。"
+        ),
     )
 
     parser.add_argument(
         "--output_log_utf8",
         action="store_true",
-        help="指定するとログ出力をUTF-8でおこないます。指定しないと、代わりに環境変数 VV_OUTPUT_LOG_UTF8 の値が使われます。"
-        "VV_OUTPUT_LOG_UTF8 の値が1の場合はUTF-8で、0または空文字、値がない場合は環境によって自動的に決定されます。",
+        help=(
+            "指定するとログ出力をUTF-8でおこないます。指定しないと、代わりに環境変数 VV_OUTPUT_LOG_UTF8 の値が使われます。"
+            "VV_OUTPUT_LOG_UTF8 の値が1の場合はUTF-8で、0または空文字、値がない場合は環境によって自動的に決定されます。"
+        ),
     )
 
     parser.add_argument(
         "--cors_policy_mode",
         type=CorsPolicyMode,
         choices=list(CorsPolicyMode),
-        default=CorsPolicyMode.localapps,
-        help="allまたはlocalappsを指定。allはすべてを許可します。"
-        "localappsはオリジン間リソース共有ポリシーを、app://.とlocalhost関連に限定します。"
-        "その他のオリジンはallow_originオプションで追加できます。デフォルトはlocalapps。",
+        default=None,
+        help=(
+            "CORSの許可モード。allまたはlocalappsが指定できます。allはすべてを許可します。"
+            "localappsはオリジン間リソース共有ポリシーを、app://.とlocalhost関連に限定します。"
+            "その他のオリジンはallow_originオプションで追加できます。デフォルトはlocalapps。"
+        ),
     )
 
     parser.add_argument(
-        "--allow_origin", nargs="*", help="許可するオリジンを指定します。複数指定する場合は、直後にスペースで区切って追加できます。"
+        "--allow_origin", nargs="*", help="許可するオリジンを指定します。スペースで区切ることで複数指定できます。"
+    )
+
+    parser.add_argument(
+        "--setting_file", type=Path, default=USER_SETTING_PATH, help="設定ファイルを指定できます。"
     )
 
     args = parser.parse_args()
@@ -1035,13 +1233,31 @@ if __name__ == "__main__":
         cancellable_engine = CancellableEngine(args)
 
     root_dir = args.voicevox_dir if args.voicevox_dir is not None else engine_root()
+
+    setting_loader = SettingLoader(args.setting_file)
+
+    settings = setting_loader.load_setting_file()
+
+    cors_policy_mode = (
+        args.cors_policy_mode
+        if args.cors_policy_mode is not None
+        else settings.cors_policy_mode
+    )
+
+    allow_origin = None
+    if args.allow_origin is not None:
+        allow_origin = args.allow_origin
+    elif settings.allow_origin is not None:
+        allow_origin = settings.allow_origin.split(" ")
+
     uvicorn.run(
         generate_app(
             synthesis_engines,
             latest_core_version,
+            setting_loader,
             root_dir=root_dir,
-            cors_policy_mode=args.cors_policy_mode,
-            allow_origin=args.allow_origin,
+            cors_policy_mode=cors_policy_mode,
+            allow_origin=allow_origin,
         ),
         host=args.host,
         port=args.port,

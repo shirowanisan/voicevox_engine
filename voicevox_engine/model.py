@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, conint, validator
 
+from .metas.Metas import Speaker, SpeakerInfo
+
 
 class Mora(BaseModel):
     """
@@ -104,44 +106,17 @@ class ParseKanaBadRequest(BaseModel):
         super().__init__(text=err.text, error_name=err.errname, error_args=err.kwargs)
 
 
-class SpeakerStyle(BaseModel):
-    """
-    スピーカーのスタイル情報
-    """
+class MorphableTargetInfo(BaseModel):
 
-    name: str = Field(title="スタイル名")
-    id: int = Field(title="スタイルID")
+    is_morphable: bool = Field(title="指定した話者に対してモーフィングの可否")
+    # FIXME: add reason property
+    # reason: Optional[str] = Field(title="is_morphableがfalseである場合、その理由")
 
 
-class Speaker(BaseModel):
-    """
-    スピーカー情報
-    """
-
-    name: str = Field(title="名前")
-    speaker_uuid: str = Field(title="スピーカーのUUID")
-    styles: List[SpeakerStyle] = Field(title="スピーカースタイルの一覧")
-    version: str = Field("スピーカーのバージョン")
-
-
-class StyleInfo(BaseModel):
-    """
-    スタイルの追加情報
-    """
-
-    id: int = Field(title="スタイルID")
-    icon: str = Field(title="当該スタイルのアイコンをbase64エンコードしたもの")
-    voice_samples: List[str] = Field(title="voice_sampleのwavファイルをbase64エンコードしたもの")
-
-
-class SpeakerInfo(BaseModel):
-    """
-    話者の追加情報
-    """
-
-    policy: str = Field(title="policy.md")
-    portrait: str = Field(title="portrait.pngをbase64エンコードしたもの")
-    style_infos: List[StyleInfo] = Field(title="スタイルの追加情報")
+class SpeakerNotFoundError(LookupError):
+    def __init__(self, speaker: int, *args: object, **kywrds: object) -> None:
+        self.speaker = speaker
+        super().__init__(f"speaker {speaker} is not found.", *args, **kywrds)
 
 
 class DownloadableModel(BaseModel):
@@ -209,16 +184,16 @@ class UserDictWord(BaseModel):
     def check_is_katakana(cls, pronunciation):
         if not fullmatch(r"[ァ-ヴー]+", pronunciation):
             raise ValueError("発音は有効なカタカナでなくてはいけません。")
-        sute_gana = ["ァ", "ィ", "ゥ", "ェ", "ォ", "ャ", "ュ", "ョ", "ヮ", "ッ"]
+        sutegana = ["ァ", "ィ", "ゥ", "ェ", "ォ", "ャ", "ュ", "ョ", "ヮ", "ッ"]
         for i in range(len(pronunciation)):
-            if pronunciation[i] in sute_gana:
+            if pronunciation[i] in sutegana:
                 # 「キャット」のように、捨て仮名が連続する可能性が考えられるので、
                 # 「ッ」に関しては「ッ」そのものが連続している場合と、「ッ」の後にほかの捨て仮名が連続する場合のみ無効とする
                 if i < len(pronunciation) - 1 and (
-                    pronunciation[i + 1] in sute_gana[:-1]
+                    pronunciation[i + 1] in sutegana[:-1]
                     or (
-                        pronunciation[i] == sute_gana[-1]
-                        and pronunciation[i + 1] == sute_gana[-1]
+                        pronunciation[i] == sutegana[-1]
+                        and pronunciation[i + 1] == sutegana[-1]
                     )
                 ):
                     raise ValueError("無効な発音です。(捨て仮名の連続)")

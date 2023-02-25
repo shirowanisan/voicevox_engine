@@ -2,7 +2,8 @@
   {
     "version": "COEIROINK-1.7.0+VOICEVOX-0.14.0",
     "descriptions": [
-      "VOICEVOXのバージョンを0.14.0にアップデート"
+      "VOICEVOXのバージョンを0.14.0にアップデート",
+      "音高と抑揚の音声劣化軽減"
     ],
     "contributors": []
   },

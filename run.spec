@@ -10,6 +10,9 @@ datas = [
     ('default.csv', '.'),
     ('licenses.json', '.'),
     ('presets.yaml', '.'),
+    ('default_setting.yml', '.'),
+    ('ui_template', 'ui_template'),
+    ('model', 'model'),
 ]
 datas += collect_data_files('pyopenjtalk')
 

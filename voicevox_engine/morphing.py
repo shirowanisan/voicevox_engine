@@ -1,10 +1,14 @@
 from copy import deepcopy
 from dataclasses import dataclass
+from itertools import chain
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pyworld as pw
 
-from .model import AudioQuery
+from .metas.Metas import Speaker, SpeakerSupportPermittedSynthesisMorphing, StyleInfo
+from .metas.MetasStore import construct_lookup
+from .model import AudioQuery, MorphableTargetInfo, SpeakerNotFoundError
 from .synthesis_engine import SynthesisEngine
 
 
@@ -40,6 +44,85 @@ def create_morphing_parameter(
         base_aperiodicity=base_aperiodicity,
         base_spectrogram=base_spectrogram,
         target_spectrogram=target_spectrogram,
+    )
+
+
+def get_morphable_targets(
+    speakers: List[Speaker],
+    base_speakers: List[int],
+) -> List[Dict[int, MorphableTargetInfo]]:
+    """
+    speakers: 全話者の情報
+    base_speakers: モーフィング可能か判定したいベースの話者リスト（スタイルID）
+    """
+    speaker_lookup = construct_lookup(speakers)
+
+    morphable_targets_arr = []
+    for base_speaker in base_speakers:
+        morphable_targets = dict()
+        for style in chain.from_iterable(speaker.styles for speaker in speakers):
+            morphable_targets[style.id] = MorphableTargetInfo(
+                is_morphable=is_synthesis_morphing_permitted(
+                    speaker_lookup=speaker_lookup,
+                    base_speaker=base_speaker,
+                    target_speaker=style.id,
+                )
+            )
+        morphable_targets_arr.append(morphable_targets)
+
+    return morphable_targets_arr
+
+
+def is_synthesis_morphing_permitted(
+    speaker_lookup: Dict[int, Tuple[Speaker, StyleInfo]],
+    base_speaker: int,
+    target_speaker: int,
+) -> bool:
+    """
+    指定されたspeakerがモーフィング可能かどうか返す
+    speakerが見つからない場合はSpeakerNotFoundErrorを送出する
+    """
+
+    base_speaker_data = speaker_lookup[base_speaker]
+    target_speaker_data = speaker_lookup[target_speaker]
+
+    if base_speaker_data is None or target_speaker_data is None:
+        raise SpeakerNotFoundError(
+            base_speaker if base_speaker_data is None else target_speaker
+        )
+
+    base_speaker_info, _ = base_speaker_data
+    target_speaker_info, _ = target_speaker_data
+
+    base_speaker_uuid = base_speaker_info.speaker_uuid
+    target_speaker_uuid = target_speaker_info.speaker_uuid
+
+    base_speaker_morphing_info: SpeakerSupportPermittedSynthesisMorphing = (
+        base_speaker_info.supported_features.permitted_synthesis_morphing
+    )
+
+    target_speaker_morphing_info: SpeakerSupportPermittedSynthesisMorphing = (
+        target_speaker_info.supported_features.permitted_synthesis_morphing
+    )
+
+    # 禁止されている場合はFalse
+    if (
+        base_speaker_morphing_info == SpeakerSupportPermittedSynthesisMorphing.NOTHING
+        or target_speaker_morphing_info
+        == SpeakerSupportPermittedSynthesisMorphing.NOTHING
+    ):
+        return False
+    # 同一話者のみの場合は同一話者判定
+    if (
+        base_speaker_morphing_info == SpeakerSupportPermittedSynthesisMorphing.SELF_ONLY
+        or target_speaker_morphing_info
+        == SpeakerSupportPermittedSynthesisMorphing.SELF_ONLY
+    ):
+        return base_speaker_uuid == target_speaker_uuid
+    # 念のため許可されているかチェック
+    return (
+        base_speaker_morphing_info == SpeakerSupportPermittedSynthesisMorphing.ALL
+        and target_speaker_morphing_info == SpeakerSupportPermittedSynthesisMorphing.ALL
     )
 
 

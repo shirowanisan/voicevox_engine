@@ -76,7 +76,7 @@ def generate_licenses() -> List[License]:
         licenses.append(
             License(
                 name="VOICEVOX",
-                version="0.14.0-modified-by-shirowanisan",
+                version="0.14.5-modified-by-shirowanisan",
                 license="LGPL license",
                 text=res.read().decode(),
             )
@@ -89,7 +89,7 @@ def generate_licenses() -> List[License]:
         licenses.append(
             License(
                 name="VOICEVOX ENGINE",
-                version="0.14.0-modified-by-shirowanisan",
+                version="0.14.3-modified-by-shirowanisan",
                 license="LGPL license",
                 text=res.read().decode(),
             )
@@ -128,7 +128,7 @@ def generate_licenses() -> List[License]:
     #     licenses.append(
     #         License(
     #             name="ONNX Runtime",
-    #             version="1.11.1",
+    #             version="1.13.1",
     #             license="MIT license",
     #             text=res.read().decode(),
     #         )
@@ -149,8 +149,8 @@ def generate_licenses() -> List[License]:
         )
 
     # pip
-    licenses_json = json.loads(
-        subprocess.run(
+    try:
+        pip_licenses_output = subprocess.run(
             "pip-licenses "
             "--from=mixed "
             "--format=json "
@@ -162,7 +162,12 @@ def generate_licenses() -> List[License]:
             check=True,
             env=os.environ,
         ).stdout.decode()
-    )
+    except subprocess.CalledProcessError as err:
+        raise Exception(
+            f"command output:\n{err.stderr and err.stderr.decode()}"
+        ) from err
+
+    licenses_json = json.loads(pip_licenses_output)
     for license_json in licenses_json:
         license = License(
             name=license_json["Name"],
@@ -202,6 +207,26 @@ def generate_licenses() -> List[License]:
             elif license.name.lower() == "distlib":
                 with urllib.request.urlopen(
                     "https://bitbucket.org/pypa/distlib/raw/7d93712134b28401407da27382f2b6236c87623a/LICENSE.txt"  # noqa: B950
+                ) as res:
+                    license.text = res.read().decode()
+            elif license.name.lower() == "jsonschema":
+                with urllib.request.urlopen(
+                    "https://raw.githubusercontent.com/python-jsonschema/jsonschema/dbc398245a583cb2366795dc529ae042d10c1577/COPYING"
+                ) as res:
+                    license.text = res.read().decode()
+            elif license.name.lower() == "lockfile":
+                with urllib.request.urlopen(
+                    "https://opendev.org/openstack/pylockfile/raw/tag/0.12.2/LICENSE"
+                ) as res:
+                    license.text = res.read().decode()
+            elif license.name.lower() == "platformdirs":
+                with urllib.request.urlopen(
+                    "https://raw.githubusercontent.com/platformdirs/platformdirs/aa671aaa97913c7b948567f4d9c77d4f98bfa134/LICENSE"
+                ) as res:
+                    license.text = res.read().decode()
+            elif license.name.lower() == "webencodings":
+                with urllib.request.urlopen(
+                    "https://raw.githubusercontent.com/gsnedders/python-webencodings/fa2cb5d75ab41e63ace691bc0825d3432ba7d694/LICENSE"
                 ) as res:
                     license.text = res.read().decode()
             elif license.name.lower() == "espnet":
@@ -290,14 +315,14 @@ def generate_licenses() -> List[License]:
     #     )
 
     # cuda
-    # license text from CUDA 11.6.0
-    # https://developer.nvidia.com/cuda-11-6-0-download-archive?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exe_local # noqa: B950
-    # https://developer.download.nvidia.com/compute/cuda/11.6.0/local_installers/cuda_11.6.0_511.23_windows.exe # noqa: B950
-    # cuda_11.6.0_511.23_windows.exe (cuda_documentation/Doc/EULA.txt)
+    # license text from CUDA 11.6.2
+    # https://developer.nvidia.com/cuda-11-6-2-download-archive?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exe_local # noqa: B950
+    # https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_511.65_windows.exe # noqa: B950
+    # cuda_11.6.2_511.65_windows.exe (cuda_documentation/Doc/EULA.txt)
     # licenses.append(
     #     License(
     #         name="CUDA Toolkit",
-    #         version="11.6.0",
+    #         version="11.6.2",
     #         license=None,
     #         text=Path("docs/licenses/cuda/EULA.txt").read_text(encoding="utf8"),
     #     )

@@ -22,7 +22,7 @@ EOF
 
 # assert VOICEVOX_CORE_VERSION >= 0.11.0 (ONNX)
 ARG VOICEVOX_CORE_ASSET_PREFIX=voicevox_core-linux-x64-cpu
-ARG VOICEVOX_CORE_VERSION=0.13.2
+ARG VOICEVOX_CORE_VERSION=0.14.2
 RUN <<EOF
     set -eux
 
@@ -35,14 +35,9 @@ RUN <<EOF
     rm -rf $VOICEVOX_CORE_ASSET_NAME
     rm "./${VOICEVOX_CORE_ASSET_NAME}.zip"
 
-    # Move Core Library to /opt/voicevox_core/
+    # Move Core to /opt/voicevox_core/
     mkdir /opt/voicevox_core
-    mv "./core/libcore.so" /opt/voicevox_core/
-
-    # Move documents to /opt/voicevox_core/
-    mv ./core/VERSION /opt/voicevox_core/
-
-    rm -rf ./core
+    mv ./core/* /opt/voicevox_core/
 
     # Add /opt/voicevox_core to dynamic library search path
     echo "/opt/voicevox_core" > /etc/ld.so.conf.d/voicevox_core.conf
@@ -69,7 +64,7 @@ RUN <<EOF
     rm -rf /var/lib/apt/lists/*
 EOF
 
-ARG ONNXRUNTIME_URL=https://github.com/microsoft/onnxruntime/releases/download/v1.10.0/onnxruntime-linux-x64-1.10.0.tgz
+ARG ONNXRUNTIME_URL=https://github.com/microsoft/onnxruntime/releases/download/v1.13.1/onnxruntime-linux-x64-1.13.1.tgz
 RUN <<EOF
     set -eux
 
@@ -197,8 +192,9 @@ COPY --from=download-onnxruntime-env /opt/onnxruntime /opt/onnxruntime
 # Add local files
 ADD ./voicevox_engine /opt/voicevox_engine/voicevox_engine
 ADD ./docs /opt/voicevox_engine/docs
-ADD ./run.py ./generate_licenses.py ./presets.yaml ./default.csv ./engine_manifest.json /opt/voicevox_engine/
+ADD ./run.py ./generate_licenses.py ./presets.yaml ./default.csv ./default_setting.yml ./engine_manifest.json /opt/voicevox_engine/
 ADD ./speaker_info /opt/voicevox_engine/speaker_info
+ADD ./ui_template /opt/voicevox_engine/ui_template
 ADD ./engine_manifest_assets /opt/voicevox_engine/engine_manifest_assets
 
 # Replace version
@@ -206,6 +202,7 @@ ARG VOICEVOX_ENGINE_VERSION=latest
 RUN sed -i "s/__version__ = \"latest\"/__version__ = \"${VOICEVOX_ENGINE_VERSION}\"/" /opt/voicevox_engine/voicevox_engine/__init__.py
 
 # Generate licenses.json
+ADD ./requirements-license.txt /tmp/
 RUN <<EOF
     set -eux
 
@@ -215,9 +212,8 @@ RUN <<EOF
     # /home/user/.local/bin is required to use the commands installed by pip
     export PATH="/home/user/.local/bin:${PATH:-}"
 
-    gosu user /opt/python/bin/pip3 install pip-licenses
+    gosu user /opt/python/bin/pip3 install -r /tmp/requirements-license.txt
     gosu user /opt/python/bin/python3 generate_licenses.py > /opt/voicevox_engine/engine_manifest_assets/dependency_licenses.json
-    # FIXME: VOICEVOX (editor) cannot build without licenses.json
     cp /opt/voicevox_engine/engine_manifest_assets/dependency_licenses.json /opt/voicevox_engine/licenses.json
 EOF
 
@@ -242,7 +238,7 @@ RUN <<EOF
 EOF
 
 # Download Resource
-ARG VOICEVOX_RESOURCE_VERSION=0.13.2
+ARG VOICEVOX_RESOURCE_VERSION=0.14.1
 RUN <<EOF
     set -eux
 
