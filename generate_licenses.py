@@ -5,6 +5,8 @@ import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Optional
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 @dataclass
