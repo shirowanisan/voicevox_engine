@@ -36,7 +36,8 @@ from voicevox_engine.metas.MetasStore import MetasStore, construct_lookup
 from voicevox_engine.model import (
     AccentPhrase,
     AudioQuery,
-    DownloadableLibrary,
+    DownloadableModel,
+    DownloadInfo,
     MorphableTargetInfo,
     ParseKanaBadRequest,
     ParseKanaError,
@@ -798,7 +799,7 @@ def generate_app(
 
     @app.get(
         "/downloadable_libraries",
-        response_model=List[DownloadableLibrary],
+        response_model=List[DownloadableModel],
         tags=["その他"],
     )
     def downloadable_libraries():
@@ -807,27 +808,75 @@ def generate_app(
 
         Returns
         -------
-        ret_data: List[DownloadableLibrary]
+        ret_data: List[DownloadableModel]
         """
         try:
             manifest = engine_manifest_loader.load_manifest()
             # APIからダウンロード可能な音声ライブラリを取得する場合
             if manifest.downloadable_libraries_url:
                 response = requests.get(manifest.downloadable_libraries_url, timeout=60)
-                ret_data: List[DownloadableLibrary] = [
-                    DownloadableLibrary(**d) for d in response.json()
+                ret_data: List[DownloadableModel] = [
+                    DownloadableModel(**d) for d in response.json()
                 ]
             # ローカルのファイルからダウンロード可能な音声ライブラリを取得する場合
             elif manifest.downloadable_libraries_path:
                 with open(manifest.downloadable_libraries_path) as f:
-                    ret_data: List[DownloadableLibrary] = [
-                        DownloadableLibrary(**d) for d in json.load(f)
+                    ret_data: List[DownloadableModel] = [
+                        DownloadableModel(**d) for d in json.load(f)
                     ]
             else:
                 raise Exception
         except Exception:
             traceback.print_exc()
             raise HTTPException(status_code=422, detail="ダウンロード可能な音声ライブラリの取得に失敗しました。")
+        return ret_data
+
+    @app.get("/download_infos", response_model=List[DownloadInfo], tags=["その他"])
+    def download_infos(core_version: Optional[str] = None):
+        """
+        ダウンロード可能なモデル情報を返します。
+        Returns
+        -------
+        ret_data: List[Download_info]
+        """
+
+        try:
+            local_speakers = [Speaker(**speaker) for speaker in json.loads(get_engine(core_version).speakers)]
+            speaker_versions = {}
+            for speaker in local_speakers:
+                speaker_versions[speaker.speaker_uuid] = speaker.version
+            response = requests.get("https://coeiroink.com/api/v1/download-infos", timeout=60)
+            downloadable_models: List[DownloadableModel] = [DownloadableModel(**d) for d in response.json()]
+            ret_data: List[DownloadInfo] = []
+            for downloadable_model in downloadable_models:
+                if downloadable_model.speaker.speaker_uuid in speaker_versions.keys():
+                    character_exists = True
+                    current_version = speaker_versions[downloadable_model.speaker.speaker_uuid]
+                    current_version_tuple = tuple(map(int,
+                                                      re.fullmatch(r"(\d+)\.(\d+)\.(\d+)",
+                                                                   current_version).groups())
+                                                  )
+                    latest_version_tuple = tuple(map(int,
+                                                     re.fullmatch(r"(\d+)\.(\d+)\.(\d+)",
+                                                                  downloadable_model.speaker.version).groups())
+                                                 )
+                    if not current_version_tuple or not latest_version_tuple:
+                        raise ValueError("Wrong version format")
+                    if latest_version_tuple > current_version_tuple:
+                        latest_model_exists = False
+                    else:
+                        latest_model_exists = True
+                else:
+                    character_exists = False
+                    current_version = "None"
+                    latest_model_exists = False
+                ret_data.append(DownloadInfo(downloadable_model=downloadable_model,
+                                             current_version=current_version,
+                                             character_exists=character_exists,
+                                             latest_model_exists=latest_model_exists))
+        except Exception as e:
+            print(e)
+            ret_data = []
         return ret_data
 
     @app.post("/initialize_speaker", status_code=204, tags=["その他"])
@@ -1081,7 +1130,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--host", type=str, default="127.0.0.1", help="接続を受け付けるホストアドレスです。"
     )
-    parser.add_argument("--port", type=int, default=50021, help="接続を受け付けるポート番号です。")
+    parser.add_argument("--port", type=int, default=50031, help="接続を受け付けるポート番号です。")
     parser.add_argument(
         "--use_gpu", action="store_true", help="指定するとGPUを使って音声合成するようになります。"
     )

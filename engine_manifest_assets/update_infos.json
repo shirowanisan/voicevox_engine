@@ -1,59 +1,109 @@
 [
   {
-    "version": "0.14.3",
+    "version": "COEIROINK-1.7.0+VOICEVOX-0.14.0",
     "descriptions": [
-      "キャラクター「†聖騎士 紅桜†」「雀松朱司」「麒ヶ島宗麟」を追加",
-      "同時書き込みで辞書が破損する問題を修正"
+      "VOICEVOXのバージョンを0.14.0にアップデート",
+      "音高と抑揚の音声劣化軽減"
     ],
-    "contributors": ["Hiroshiba"]
-  },
-  {
-    "version": "0.14.2",
-    "descriptions": ["DirectML版の生成が遅い問題を修正"],
     "contributors": []
   },
   {
-    "version": "0.14.1",
-    "descriptions": ["AquesTalkライクな記法で生成した音声のバグを修正"],
+    "version": "COEIROINK-1.6.0+VOICEVOX-0.12.3",
+    "descriptions": [
+      "音声ライブラリダウンロード機能の実装",
+      "キャラクター追加・削除時のエラーを修正"
+    ],
     "contributors": []
   },
   {
-    "version": "0.14.0",
+    "version": "COEIROINK-1.5.0+VOICEVOX-0.12.3",
     "descriptions": [
-      "コアをRust言語に移行",
-      "セキュリティアップデート",
-      "スタイルごとに異なる立ち絵の提供を可能に",
-      "VVPPファイルの提供",
-      "設定GUIの提供",
-      "プリセットの保存",
-      "モーフィングAPIの仕様変更",
-      "DirectML利用時に適したGPUを自動選択",
-      "開発環境の向上",
-      "バグ修正"
+      "VOICEVOXのバージョンを0.12.3にアップデート",
+      "アクセントを変えても疑問符を判断するように修正"
     ],
-    "contributors": [
-      "aoirint",
-      "Appletigerv",
-      "haru3me",
-      "Hiroshiba",
-      "ksk001100",
-      "masinc",
-      "misogihagi",
-      "My-MC",
-      "nebocco",
-      "PickledChair",
-      "qryxip",
-      "qwerty2501",
-      "sabonerune",
-      "sarisia",
-      "Segu-g",
-      "sevenc-nanashi",
-      "shigobu",
-      "smly",
-      "takana-v",
-      "ts-klassen",
-      "whiteball",
-      "y-chan"
-    ]
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.4.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "MANA（いっしょうけんめい）の音声ライブラリを追加",
+      "おふとんP（ナレーション）の音声ライブラリを追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.3.1+VOICEVOX-0.10.4",
+    "descriptions": [
+      "無音で再生したときにエラーになる不具合を修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.3.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "各キャラで先頭と末尾の無音区間が異なる不具合を修正",
+      "音高と抑揚の調節機能追加",
+      "内部的に疑問符を判断する機能の追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.2.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "つくよみちゃん（れいせい）の音声ライブラリをアップデート",
+      "つくよみちゃん（おしとやか）の音声ライブラリをアップデート",
+      "つくよみちゃん（げんき）の音声ライブラリをアップデート",
+      "おふとんPの音声ライブラリをアップデート",
+      "ディアちゃんの音声ライブラリをアップデート",
+      "アルマちゃんの音声ライブラリをアップデート"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.1.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "つくよみちゃん（れいせい）の音声ライブラリをアップデート",
+      "MANAの音声ライブラリをアップデート",
+      "MYCOEIROINK追加機能を実装"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.0.1+VOICEVOX-0.10.4",
+    "descriptions": [
+      "PCのユーザー名が日本語名だと起動しない不具合を修正"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-1.0.0+VOICEVOX-0.10.4",
+    "descriptions": [
+      "高音質化（サンプリング周波数 24Hz → 44.1Hz）",
+      "話速調節機能追加",
+      "つくよみちゃんスタイル（れいせい・おしとやか・げんき）変更機能追加",
+      "ディアちゃんの音声ライブラリを追加",
+      "アルマちゃんの音声ライブラリを追加"
+    ],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.2.0+VOICEVOX-0.7.5",
+    "descriptions": ["おふとんPの音声ライブラリを追加"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.1.0+VOICEVOX-0.7.5",
+    "descriptions": ["MANAの音声ライブラリを追加"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.0.2+VOICEVOX-0.7.5",
+    "descriptions": ["初期状態に音声ライブラリを含むように変更"],
+    "contributors": []
+  },
+  {
+    "version": "COEIROINK-0.0.1+VOICEVOX-0.7.5",
+    "descriptions": ["初回リリース"],
+    "contributors": []
   }
 ]
