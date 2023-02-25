@@ -38,7 +38,6 @@ from voicevox_engine.model import (
     AudioQuery,
     DownloadableModel,
     DownloadInfo,
-    DownloadableLibrary,
     MorphableTargetInfo,
     ParseKanaBadRequest,
     ParseKanaError,

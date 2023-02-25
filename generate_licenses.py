@@ -71,7 +71,7 @@ def generate_licenses() -> List[License]:
 
     # VOICEVOX
     with urllib.request.urlopen(
-            "https://raw.githubusercontent.com/VOICEVOX/voicevox/main/LGPL_LICENSE"
+        "https://raw.githubusercontent.com/VOICEVOX/voicevox/main/LGPL_LICENSE"
     ) as res:
         licenses.append(
             License(
