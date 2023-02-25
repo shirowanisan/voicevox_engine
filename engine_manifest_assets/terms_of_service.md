@@ -12,13 +12,7 @@
 
 [VOICEVOX](https://voicevox.hiroshiba.jp)
 
-## 禁止事項
-
-こちらをご確認ください。
-
-[COEIROINK 禁止事項](https://coeiroink.com/prohibited)
-
-## 利用規約
+## 利用規約・禁止事項
 
 こちらをご確認ください。
 
