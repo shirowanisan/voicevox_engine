@@ -245,7 +245,10 @@ def generate_licenses() -> List[License]:
                 with open('docs/licenses/torch_complex/for-torch-complex-license.txt') as f:
                     license.text = '\n'.join(f.readlines())
             elif license.name.lower() == "coeirocore":
-                continue
+                with urllib.request.urlopen(
+                        "https://raw.githubusercontent.com/shirowanisan/coeiroink_core/main/LICENSE"
+                ) as res:
+                    license.text = res.read().decode()
             else:
                 # ライセンスがpypiに無い
                 raise Exception(f"No License info provided for {license.name}")

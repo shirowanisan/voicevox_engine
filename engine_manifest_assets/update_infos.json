@@ -1,5 +1,12 @@
 [
   {
+    "version": "COEIROINK-1.7.1+VOICEVOX-0.14.5",
+    "descriptions": [
+      "VOICEVOXのバージョンを0.14.5にアップデート",
+    ],
+    "contributors": []
+  },
+  {
     "version": "COEIROINK-1.7.0+VOICEVOX-0.14.0",
     "descriptions": [
       "VOICEVOXのバージョンを0.14.0にアップデート",
