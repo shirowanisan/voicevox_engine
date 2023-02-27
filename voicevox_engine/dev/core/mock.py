@@ -69,7 +69,7 @@ def decode_forward(length: int, **kwargs: Dict[str, Any]) -> np.ndarray:
 
 
 def metas() -> str:
-    return json.dumps(MetaManager.get_metas_dict())
+    return json.dumps(MetaManager().get_metas_dict())
 
 
 def supported_devices() -> str:

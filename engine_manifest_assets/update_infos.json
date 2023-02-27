@@ -2,7 +2,9 @@
   {
     "version": "COEIROINK-1.7.1+VOICEVOX-0.14.5",
     "descriptions": [
-      "VOICEVOXのバージョンを0.14.5にアップデート"
+      "VOICEVOXのバージョンを0.14.5にアップデート",
+      "speaker_infoに不備がある場合、起動時にメッセージを表示するように修正",
+      "speaker_infoのフォルダ名をuuid以外を設定できるように修正"
     ],
     "contributors": []
   },
