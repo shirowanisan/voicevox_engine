@@ -22,7 +22,7 @@ class MockSynthesisEngine(SynthesisEngineBase):
 
         self.audio_manager = AudioManager(
             fs=self.default_sampling_rate,
-            use_gpu=False
+            use_gpu=True
         )
 
     @property
