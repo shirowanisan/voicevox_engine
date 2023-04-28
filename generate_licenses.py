@@ -246,7 +246,7 @@ def generate_licenses() -> List[License]:
                     license.text = '\n'.join(f.readlines())
             elif license.name.lower() == "coeirocore":
                 with urllib.request.urlopen(
-                        "https://raw.githubusercontent.com/shirowanisan/coeiroink_core/main/LICENSE"
+                        "https://raw.githubusercontent.com/shirowanisan/coeiroink_core/main/LGPL_LICENSE"
                 ) as res:
                     license.text = res.read().decode()
             else:
