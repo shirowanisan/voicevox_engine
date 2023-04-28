@@ -1,1 +1,1 @@
-__version__ = "1.7.3-cpu"
+__version__ = "1.7.3-gpu"

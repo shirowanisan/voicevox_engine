@@ -75,7 +75,7 @@ def metas() -> str:
 def supported_devices() -> str:
     return json.dumps(
         {
-            "cpu": True,
-            "cuda": False,
+            "cpu": False,
+            "cuda": True,
         }
     )
